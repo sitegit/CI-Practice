@@ -1,8 +1,10 @@
 name: Android CI Build
 
 on:
-  push:
+  # Запускаем только при создании/обновлении Pull Request-а в эти ветки
+  pull_request:
     branches: [ "main", "master", "develop", "dev" ]
+  # Оставляем ручной запуск на всякий случай
   workflow_dispatch:
 
 jobs:
@@ -23,7 +25,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Создаем файл google-services.json
       - name: Decode Google Services JSON
         env:
           GOOGLE_SERVICES_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
@@ -31,16 +32,15 @@ jobs:
           echo "$GOOGLE_SERVICES_BASE64" | base64 --decode > app/google-services.json
 
       # ==========================================
-      # БЛОК ДЛЯ DEBUG (Ветка develop / dev)
+      # БЛОК ДЛЯ DEBUG (Если мержим в develop / dev)
       # ==========================================
 
       - name: Build Debug APK
-        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/dev'
+        if: github.base_ref == 'develop' || github.base_ref == 'dev' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/dev'
         run: ./gradlew assembleDebug
 
-      # Отправляем Debug APK в Firebase!
       - name: Upload Debug APK to Firebase
-        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/dev'
+        if: github.base_ref == 'develop' || github.base_ref == 'dev' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/dev'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
@@ -49,19 +49,18 @@ jobs:
           file: app/build/outputs/apk/debug/*.apk
 
       # ==========================================
-      # БЛОК ДЛЯ RELEASE (Ветка main / master)
+      # БЛОК ДЛЯ RELEASE (Если мержим в main / master)
       # ==========================================
 
       - name: Decode Keystore
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.base_ref == 'main' || github.base_ref == 'master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           echo "$KEYSTORE_BASE64" | base64 --decode > app/release.keystore
 
-      # СОБИРАЕМ СРАЗУ И APK (для Firebase) И AAB (для Google Play)
       - name: Build Release APK and AAB
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.base_ref == 'main' || github.base_ref == 'master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         env:
           RELEASE_STORE_FILE: release.keystore
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
@@ -69,17 +68,15 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease bundleRelease
 
-      # Сохраняем AAB в артефакты для ручной заливки в Google Play
       - name: Upload Release AAB to Artifacts
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.base_ref == 'main' || github.base_ref == 'master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: app-release-bundle
           path: app/build/outputs/bundle/release/*.aab
 
-      # Отправляем Release APK в Firebase!
       - name: Upload Release APK to Firebase
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.base_ref == 'main' || github.base_ref == 'master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_APP_ID }}
