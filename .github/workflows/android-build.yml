@@ -46,7 +46,7 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           groups: testers
-          file: app/build/outputs/apk/debug/*.apk
+          file: app/build/outputs/apk/debug/app-debug.apk
 
       # ==========================================
       # БЛОК ДЛЯ RELEASE (Если мержим в main / master)
@@ -82,4 +82,4 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           groups: testers
-          file: app/build/outputs/apk/release/*.apk
+          file: app/build/outputs/apk/release/app-release.apk
